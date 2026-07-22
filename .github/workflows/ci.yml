@@ -1,0 +1,74 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+
+jobs:
+  quality:
+    name: Test & Security
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: podo_test
+          POSTGRES_USER: podo
+          POSTGRES_PASSWORD: podo
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd="pg_isready -U podo" --health-interval=10s
+          --health-timeout=5s --health-retries=5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: pdo_pgsql, redis, gd, intl, bcmath, zip
+          coverage: none
+
+      - name: Install dependencies
+        run: composer install --prefer-dist --no-progress
+
+      - name: Copy env
+        run: cp .env.example .env && php artisan key:generate
+
+      - name: Static analysis (SAST)
+        run: vendor/bin/phpstan analyse --no-progress || true
+
+      - name: Code style
+        run: vendor/bin/pint --test || true
+
+      - name: Dependency vulnerability scan
+        run: composer audit || true
+
+      - name: Migrate & Test
+        env:
+          DB_CONNECTION: pgsql
+          DB_HOST: 127.0.0.1
+          DB_DATABASE: podo_test
+          DB_USERNAME: podo
+          DB_PASSWORD: podo
+          CACHE_STORE: array
+          SESSION_DRIVER: array
+          QUEUE_CONNECTION: sync
+        run: |
+          php artisan migrate --force
+          php artisan test
+
+  frontend:
+    name: Frontend build & audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - run: npm ci
+      - run: npm audit --audit-level=high || true
+      - run: npm run build
