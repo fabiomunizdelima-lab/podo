@@ -21,7 +21,7 @@ class SecurityHeaders
         $nonce = base64_encode(random_bytes(16));
         $request->attributes->set('csp_nonce', $nonce);
 
-        $csp = implode('; ', [
+        $directives = [
             "default-src 'self'",
             "base-uri 'self'",
             "frame-ancestors 'none'",
@@ -34,8 +34,15 @@ class SecurityHeaders
             "script-src 'self' 'unsafe-eval' 'nonce-{$nonce}'",
             "connect-src 'self'",
             "object-src 'none'",
-            'upgrade-insecure-requests',
-        ]);
+        ];
+
+        // Forza l'upgrade a HTTPS solo quando la connessione è già sicura
+        // (es. dietro reverse proxy TLS). In HTTP puro romperebbe la navigazione.
+        if ($request->isSecure()) {
+            $directives[] = 'upgrade-insecure-requests';
+        }
+
+        $csp = implode('; ', $directives);
 
         $headers = [
             'Content-Security-Policy' => $csp,
