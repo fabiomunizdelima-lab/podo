@@ -26,13 +26,11 @@ COPY docker/php/php.ini /usr/local/etc/php/conf.d/podo.ini
 
 WORKDIR /var/www/html
 
-# NOTA sicurezza (dev/test): in questo setup con codice montato da bind-mount
-# (di proprietà di root sulla CT) i processi girano come root per evitare
-# problemi di permessi di scrittura su vendor/, node_modules/, storage/.
-# In PRODUZIONE il codice va copiato nell'immagine in fase di build e i
-# processi eseguiti come utente non privilegiato (www-data). Vedi docs/SICUREZZA.md.
-RUN sed -i 's/^user = www-data/user = root/; s/^group = www-data/group = root/' \
-        /usr/local/etc/php-fpm.d/www.conf
+# Il master php-fpm gira come root (default) e i worker del pool come www-data
+# (php-fpm RIFIUTA di eseguire il pool come root). L'entrypoint, eseguito da root,
+# esegue composer/npm/migrate e poi assegna a www-data i permessi di scrittura
+# su storage/ e bootstrap/cache/ (necessario col codice montato da bind-mount).
+# In PRODUZIONE: copiare il codice nell'immagine e usare ownership www-data.
 
 COPY docker/php/entrypoint.sh /usr/local/bin/entrypoint
 RUN chmod +x /usr/local/bin/entrypoint

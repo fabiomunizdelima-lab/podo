@@ -40,11 +40,15 @@ if [ "$1" = "php-fpm" ]; then
         php artisan key:generate --force
     fi
 
-    php artisan storage:link || true
+    [ -L public/storage ] || php artisan storage:link || true
     php artisan migrate --force
     php artisan config:cache
     php artisan route:cache
     php artisan view:cache
+
+    # I worker php-fpm girano come www-data: dai loro i permessi di scrittura
+    # su storage/ e bootstrap/cache/ (codice montato da bind-mount, owner root).
+    chown -R www-data:www-data storage bootstrap/cache 2>/dev/null || true
 fi
 
 exec "$@"

@@ -62,6 +62,8 @@ services:
       dockerfile: docker/php/Dockerfile
     restart: unless-stopped
     env_file: .env
+    # Stesso utente dei worker php-fpm per coerenza dei permessi su storage/
+    user: "www-data"
     command: php artisan schedule:work
     volumes:
       - ./:/var/www/html
@@ -75,6 +77,7 @@ services:
       dockerfile: docker/php/Dockerfile
     restart: unless-stopped
     env_file: .env
+    user: "www-data"
     command: php artisan queue:work --sleep=3 --tries=3 --max-time=3600
     volumes:
       - ./:/var/www/html
