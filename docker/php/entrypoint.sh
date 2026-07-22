@@ -1,19 +1,38 @@
 #!/bin/sh
 set -e
 
-# Attende il database
 echo "Podo: avvio container ($1)…"
 
-# Solo per il servizio principale php-fpm eseguiamo setup una volta
+# Git: la working copy è montata da host (owner root) mentre giriamo come 'podo'.
+# Senza questa eccezione git/composer segnalano "dubious ownership".
+git config --global --add safe.directory /var/www/html 2>/dev/null || true
+
+# Solo per il servizio principale php-fpm eseguiamo il setup una volta
 if [ "$1" = "php-fpm" ]; then
+
+    # La advisory-policy di Composer blocca in risoluzione le versioni con avvisi
+    # di sicurezza. In ambiente non-lock la disattiviamo per poter installare.
+    # (In produzione si committa un composer.lock verificato e la si lascia attiva.)
+    composer config --global policy.advisories.block false 2>/dev/null || true
+
     if [ ! -d vendor ]; then
         echo "Installazione dipendenze PHP…"
-        composer install --no-dev --optimize-autoloader --no-interaction
+        if [ -f composer.lock ]; then
+            composer install --no-dev --optimize-autoloader --no-interaction
+        else
+            echo "composer.lock assente: risoluzione dipendenze (composer update)…"
+            composer update --no-dev --optimize-autoloader --no-interaction
+        fi
     fi
 
     if [ ! -d node_modules ]; then
         echo "Installazione e build asset frontend…"
-        npm ci && npm run build
+        if [ -f package-lock.json ]; then
+            npm ci
+        else
+            npm install
+        fi
+        npm run build
     fi
 
     # Genera APP_KEY se assente

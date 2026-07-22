@@ -26,13 +26,16 @@ COPY docker/php/php.ini /usr/local/etc/php/conf.d/podo.ini
 
 WORKDIR /var/www/html
 
-# Utente non-root (checklist: least privilege / hardening)
-RUN groupadd -g 1000 podo && useradd -u 1000 -g podo -m podo
+# NOTA sicurezza (dev/test): in questo setup con codice montato da bind-mount
+# (di proprietà di root sulla CT) i processi girano come root per evitare
+# problemi di permessi di scrittura su vendor/, node_modules/, storage/.
+# In PRODUZIONE il codice va copiato nell'immagine in fase di build e i
+# processi eseguiti come utente non privilegiato (www-data). Vedi docs/SICUREZZA.md.
+RUN sed -i 's/^user = www-data/user = root/; s/^group = www-data/group = root/' \
+        /usr/local/etc/php-fpm.d/www.conf
 
 COPY docker/php/entrypoint.sh /usr/local/bin/entrypoint
 RUN chmod +x /usr/local/bin/entrypoint
-
-USER podo
 
 ENTRYPOINT ["entrypoint"]
 CMD ["php-fpm"]
