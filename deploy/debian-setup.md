@@ -48,21 +48,22 @@ Modifica `.env`:
 - Password DB e backup robuste
 - Credenziali WhatsApp e Google quando pronte
 
-## 4. Certificati TLS (Let's Encrypt)
+## 4. TLS tramite Nginx Proxy Manager (NPM)
 
-Opzione consigliata: certbot in modalità standalone/webroot, poi montare i file.
+Podo espone solo **HTTP sulla porta 8080**. Il certificato TLS (Let's Encrypt) è
+gestito a monte da **Nginx Proxy Manager**, che fa da reverse proxy.
 
-```bash
-sudo apt install -y certbot
-sudo certbot certonly --standalone -d gestionale.tuostudio.it
-# Copia i certificati dove Nginx del compose li cerca:
-mkdir -p docker/nginx/certs
-sudo cp /etc/letsencrypt/live/gestionale.tuostudio.it/fullchain.pem docker/nginx/certs/
-sudo cp /etc/letsencrypt/live/gestionale.tuostudio.it/privkey.pem  docker/nginx/certs/
-sudo chown $USER: docker/nginx/certs/*.pem
-```
+In NPM crea un **Proxy Host**:
+- Domain Names: `gestionale.tuostudio.it`
+- Scheme: `http` · Forward Hostname/IP: `IP-DELLA-CT-PODO` · Forward Port: `8080`
+- **Websockets Support**: ON · **Block Common Exploits**: ON
+- Scheda **SSL**: richiedi un certificato Let's Encrypt + **Force SSL** + **HTTP/2** + **HSTS**
 
-Imposta un rinnovo automatico (cron/systemd timer) che ricopia i file e ricarica Nginx.
+NPM inoltra automaticamente `X-Forwarded-Proto=https`; Laravel (che si fida del proxy)
+riconosce la connessione come sicura. Nessun certificato va messo dentro il progetto.
+
+> Alternativa senza NPM (TLS diretto nel container): usa `docker/nginx/direct-tls.conf`,
+> monta i certificati in `docker/nginx/certs/` e riapri la porta 443 nel `docker-compose.yml`.
 
 ## 5. Avvio
 

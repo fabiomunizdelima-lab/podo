@@ -49,8 +49,9 @@ git clone https://github.com/fabiomunizdelima-lab/podo.git
 cd podo
 cp .env.example .env
 # Modifica .env: password DB, dominio, credenziali WhatsApp/Google
-# Metti i certificati TLS in docker/nginx/certs/ (fullchain.pem, privkey.pem)
 docker compose up -d --build
+# L'app resta in HTTP sulla porta 8080; il TLS lo gestisce a monte
+# Nginx Proxy Manager (vedi deploy/debian-setup.md).
 ```
 
 All'avvio il container esegue automaticamente: `composer install`, build asset,
