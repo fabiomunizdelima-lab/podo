@@ -5,6 +5,10 @@ Versionamento: [SemVer](https://semver.org/lang/it/). La versione corrente è in
 
 ## [Non rilasciato]
 
+## [0.2.5] - 2026-07-23
+### Aggiunto
+- Logo ufficiale "podo" (login, sidebar, favicon).
+
 ## [0.2.4] - 2026-07-23
 ### Aggiunto
 - Import cartelle cliniche e ortesi da SmartPodos (FileMaker via ODBC): 1.532 visite (podologiche + onicopatie) e 59 ortesi, agganciate ai pazienti per legacy_fm_id; campi clinici cifrati. Comando `podo:import-cliniche` + colonna `legacy_ref` (idempotenza).

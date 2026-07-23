@@ -10,8 +10,8 @@
 @endphp
 <div class="flex h-full flex-col">
     <div class="flex items-center gap-2 px-2 py-3 text-white">
-        <div class="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-500 font-bold">P</div>
-        <span class="text-lg font-semibold">Podo</span>
+        <img src="{{ asset('img/logo-mark-white.png') }}" alt="Podo" class="h-9 w-auto">
+        <span class="text-xl font-semibold tracking-tight">podo</span>
     </div>
 
     @if ($user->isPatient())
