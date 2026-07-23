@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Setting;
+use App\Services\UpdateService;
 use Illuminate\Http\Request;
 
 /**
@@ -16,7 +17,7 @@ class SettingsController extends Controller
         'address', 'city', 'cap', 'province', 'pec', 'sdi_code', 'register_note', 'ts_default_type',
     ];
 
-    public function edit()
+    public function edit(UpdateService $updateSvc)
     {
         $billing = Setting::billing();
         $security = config('podo.security');
@@ -24,8 +25,13 @@ class SettingsController extends Controller
             'whatsapp' => config('podo.whatsapp.enabled'),
             'google_calendar' => config('podo.google_calendar.enabled'),
         ];
+        $update = [
+            'current' => $updateSvc->currentVersion(),
+            'last' => $updateSvc->lastCheck(),
+            'running' => $updateSvc->isRunning(),
+        ];
 
-        return view('settings.index', compact('billing', 'security', 'integrations'));
+        return view('settings.index', compact('billing', 'security', 'integrations', 'update'));
     }
 
     public function update(Request $request)
@@ -48,7 +54,6 @@ class SettingsController extends Controller
             'withholding_rate' => ['nullable', 'numeric', 'min:0', 'max:100'],
         ]);
 
-        // Deriva il codice regime SDI se non indicato
         if (empty($data['tax_regime_code']) && ! empty($data['regime'])) {
             $data['tax_regime_code'] = $data['regime'] === 'forfettario' ? 'RF19' : 'RF01';
         }
@@ -59,7 +64,6 @@ class SettingsController extends Controller
         Setting::set('billing.withholding_enabled', $request->boolean('withholding_enabled') ? '1' : '0');
         Setting::set('billing.withholding_rate', $data['withholding_rate'] ?? null);
 
-        return redirect()->route('settings.edit')
-            ->with('success', 'Impostazioni salvate.');
+        return redirect()->route('settings.edit')->with('success', 'Impostazioni salvate.');
     }
 }

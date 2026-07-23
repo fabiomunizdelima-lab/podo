@@ -5,6 +5,49 @@
 <div class="mx-auto max-w-2xl">
     <h1 class="mb-4 text-lg font-semibold text-slate-800">Impostazioni studio</h1>
 
+    {{-- Aggiornamenti applicativo --}}
+    <div class="card mb-6 p-5" x-data="updater({{ Illuminate\Support\Js::from($update) }})" x-init="init()">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+            <div>
+                <h2 class="text-sm font-semibold text-slate-700">Aggiornamenti</h2>
+                <p class="text-sm text-slate-500">Versione installata: <span class="font-mono font-medium text-slate-800" x-text="current"></span></p>
+            </div>
+            <div class="flex gap-2">
+                <button type="button" class="btn-secondary" @click="check()" x-show="!running" :disabled="checking">
+                    <span x-text="checking ? 'Controllo…' : 'Controlla aggiornamenti'"></span>
+                </button>
+                <button type="button" class="btn-primary" @click="start()" x-show="available && !running" x-cloak>Aggiorna ora</button>
+            </div>
+        </div>
+
+        <p class="mt-3 text-sm text-green-700" x-show="checked && !available && !errorMsg && !running" x-cloak>
+            L'applicazione è aggiornata all'ultima versione.
+        </p>
+        <p class="mt-3 text-sm text-amber-700" x-show="available && !running" x-cloak>
+            È disponibile la versione <span class="font-mono font-semibold" x-text="remote"></span>.
+        </p>
+        <p class="mt-3 text-sm text-red-700" x-show="errorMsg" x-cloak x-text="errorMsg"></p>
+
+        {{-- Barra di avanzamento --}}
+        <div class="mt-4" x-show="running || state === 'done' || state === 'error'" x-cloak>
+            <div class="mb-1 flex items-center justify-between text-sm">
+                <span class="text-slate-600" x-text="label"></span>
+                <span class="font-mono text-slate-500" x-text="percent + '%'"></span>
+            </div>
+            <div class="h-2 w-full overflow-hidden rounded-full bg-slate-200">
+                <div class="h-2 rounded-full transition-all duration-500"
+                     :class="state === 'error' ? 'bg-red-500' : (state === 'done' ? 'bg-green-500' : 'bg-brand-600')"
+                     :style="`width: ${percent}%`"></div>
+            </div>
+            <p class="mt-2 text-sm font-medium" x-show="state === 'done'" x-cloak>
+                <span class="text-green-700">Aggiornamento completato.</span>
+                <a href="{{ route('settings.edit') }}" class="text-brand-600 underline">Ricarica la pagina</a>
+            </p>
+            <pre class="mt-3 max-h-48 overflow-auto rounded-lg bg-slate-900 p-3 text-xs leading-relaxed text-slate-200"
+                 x-show="log.length" x-text="log.join('\n')"></pre>
+        </div>
+    </div>
+
     <form method="POST" action="{{ route('settings.update') }}" class="card p-5"
           x-data="{ regime: '{{ old('regime', $billing['regime'] ?? 'forfettario') }}', wh: {{ old('withholding_enabled', $billing['withholding_enabled'] ?? false) ? 'true' : 'false' }} }">
         @csrf @method('PUT')
@@ -103,7 +146,88 @@
             <div class="flex justify-between"><dt class="text-slate-500">Promemoria WhatsApp</dt><dd>{{ ($integrations['whatsapp'] ?? false) ? 'Attivo' : 'Non configurato' }}</dd></div>
             <div class="flex justify-between"><dt class="text-slate-500">Google Calendar</dt><dd>{{ ($integrations['google_calendar'] ?? false) ? 'Attivo' : 'Non configurato' }}</dd></div>
         </dl>
-        <p class="mt-3 text-xs text-slate-400">MFA e integrazioni si configurano da .env (richiedono riavvio dei container).</p>
+        <p class="mt-3 text-xs text-slate-400">MFA e integrazioni si configurano da .env (richiedono la ricreazione dei container: <span class="font-mono">docker compose up -d</span>).</p>
     </div>
 </div>
+
+@push('scripts')
+<script>
+    function updater(initial) {
+        return {
+            current: initial.current || '—',
+            remote: initial.last ? initial.last.remote : null,
+            available: initial.last ? !!initial.last.available : false,
+            checked: !!initial.last,
+            checking: false,
+            errorMsg: initial.last ? (initial.last.error || null) : null,
+            state: initial.running ? 'running' : 'idle',
+            step: 0,
+            total: 6,
+            label: '',
+            log: [],
+            timer: null,
+
+            get percent() { return this.total ? Math.round((this.step / this.total) * 100) : 0; },
+            get running() { return ['queued', 'running'].includes(this.state); },
+
+            init() { if (this.running) this.poll(); },
+
+            async check() {
+                this.checking = true;
+                this.errorMsg = null;
+                try {
+                    const r = await fetch('{{ route('update.check') }}', { headers: { 'Accept': 'application/json' } });
+                    const d = await r.json();
+                    this.remote = d.remote;
+                    this.available = d.available;
+                    this.errorMsg = d.error;
+                    this.checked = true;
+                } catch (e) {
+                    this.errorMsg = 'Controllo non riuscito.';
+                }
+                this.checking = false;
+            },
+
+            async start() {
+                this.errorMsg = null;
+                const token = document.querySelector('meta[name="csrf-token"]').content;
+                const r = await fetch('{{ route('update.start') }}', {
+                    method: 'POST',
+                    headers: { 'X-CSRF-TOKEN': token, 'Accept': 'application/json' },
+                });
+                if (r.ok) {
+                    this.state = 'queued';
+                    this.label = 'In coda…';
+                    this.poll();
+                } else {
+                    const d = await r.json().catch(() => ({}));
+                    this.errorMsg = d.error || 'Impossibile avviare l\'aggiornamento.';
+                }
+            },
+
+            poll() {
+                clearInterval(this.timer);
+                this.timer = setInterval(async () => {
+                    try {
+                        const r = await fetch('{{ route('update.status') }}', { headers: { 'Accept': 'application/json' } });
+                        const s = await r.json();
+                        this.state = s.state;
+                        this.step = s.step;
+                        this.total = s.total;
+                        this.label = s.label || '';
+                        this.log = s.log || [];
+                        if (['done', 'error'].includes(s.state)) {
+                            clearInterval(this.timer);
+                            if (s.state === 'done') {
+                                this.current = s.version || this.current;
+                                this.available = false;
+                            }
+                        }
+                    } catch (e) { /* riprova al prossimo tick */ }
+                }, 1500);
+            },
+        };
+    }
+</script>
+@endpush
 @endsection

@@ -15,6 +15,7 @@ use App\Http\Controllers\OrthosisController;
 use App\Http\Controllers\PatientController;
 use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\TreatmentController;
+use App\Http\Controllers\UpdateController;
 use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
 
@@ -114,6 +115,11 @@ Route::middleware(['auth', 'mfa'])->group(function () {
         Route::middleware('role:superadmin')->group(function () {
             Route::get('impostazioni', [SettingsController::class, 'edit'])->name('settings.edit');
             Route::put('impostazioni', [SettingsController::class, 'update'])->name('settings.update');
+
+            // Aggiornamento applicativo
+            Route::get('impostazioni/aggiornamenti/controlla', [UpdateController::class, 'check'])->name('update.check');
+            Route::post('impostazioni/aggiornamenti/avvia', [UpdateController::class, 'start'])->name('update.start');
+            Route::get('impostazioni/aggiornamenti/stato', [UpdateController::class, 'status'])->name('update.status');
         });
     });
 });
