@@ -5,6 +5,12 @@ Versionamento: [SemVer](https://semver.org/lang/it/). La versione corrente è in
 
 ## [Non rilasciato]
 
+## [0.2.3] - 2026-07-23
+### Aggiunto
+- Migrazione anagrafica da SmartPodos (FileMaker): comando `podo:import-pazienti` + colonna `legacy_fm_id`. Pazienti importati/arricchiti con match sul codice fiscale — 2.013 totali (+970 nuovi; arricchiti con nascita, sesso, telefoni, consenso e note cliniche cifrate). `legacy_fm_id` collega le future cartelle cliniche.
+### Note
+- Backup in-app (spatie) non operativo: manca `pg_dump` nel container app → usato il `pg_dump` del container db. Da sistemare (aggiungere postgresql-client all'immagine).
+
 ## [0.2.2] - 2026-07-23
 ### Aggiunto
 - **Fatture a strutture** dall'interfaccia: nel form si sceglie l'intestatario tra **Paziente** o **Struttura** (denominazione, P.IVA, codice fiscale, indirizzo liberi). Prima il modello lo consentiva ma il form obbligava a un paziente.
