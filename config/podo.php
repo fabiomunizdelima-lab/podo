@@ -66,7 +66,7 @@ return [
         'withholding_rate'    => (float) env('BILLING_WITHHOLDING_RATE', 20.0),
         // Sistema Tessera Sanitaria
         'ts_enabled'      => (bool) env('BILLING_TS_ENABLED', false),
-        'ts_default_type' => env('BILLING_TS_DEFAULT_TYPE', 'SR'),
+        'ts_default_type' => env('BILLING_TS_DEFAULT_TYPE', 'SP'),
     ],
 
 ];

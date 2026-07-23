@@ -49,3 +49,8 @@ yarn-error.log
 # Foto cliniche cifrate dei pazienti e temporanei di backup — MAI nel repo
 /storage/app/clinical
 /storage/app/backup-temp
+
+# Dati di migrazione da SmartPodos (anagrafiche pazienti)
+/storage/app/import
+/storage/app/import-tmp
+/storage/app/import*

@@ -80,6 +80,12 @@ class Patient extends Model
         return $this->hasMany(Orthosis::class)->latest('prescribed_at');
     }
 
+    /** Fatture intestate al paziente. */
+    public function invoices(): HasMany
+    {
+        return $this->hasMany(Invoice::class)->latest('issued_at');
+    }
+
     public function getFullNameAttribute(): string
     {
         return trim("{$this->first_name} {$this->last_name}");
