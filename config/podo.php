@@ -64,6 +64,8 @@ return [
         // Ritenuta d acconto (di norma NON per forfettari)
         'withholding_enabled' => (bool) env('BILLING_WITHHOLDING_ENABLED', false),
         'withholding_rate'    => (float) env('BILLING_WITHHOLDING_RATE', 20.0),
+        'withholding_type'    => env('BILLING_WITHHOLDING_TYPE', 'RT01'),
+        'withholding_causale' => env('BILLING_WITHHOLDING_CAUSALE', 'A'),
         // Sistema Tessera Sanitaria
         'ts_enabled'      => (bool) env('BILLING_TS_ENABLED', false),
         'ts_default_type' => env('BILLING_TS_DEFAULT_TYPE', 'SP'),

@@ -5,6 +5,12 @@ Versionamento: [SemVer](https://semver.org/lang/it/). La versione corrente è in
 
 ## [Non rilasciato]
 
+## [0.2.1] - 2026-07-23
+### Corretto
+- **FatturaPA**: l'XML ora include `<DatiRitenuta>` (TipoRitenuta, ImportoRitenuta, AliquotaRitenuta, CausalePagamento) e il flag `<Ritenuta>SI</Ritenuta>` sulle righe quando la ritenuta d'acconto è attiva. Prima veniva calcolata ma non scritta nel file.
+### Aggiunto
+- Config fatturazione `withholding_type` (default `RT01`) e `withholding_causale` (default `A`).
+
 ## [0.2.0] - 2026-07-23
 ### Aggiunto
 - Moduli SmartPodos ricostruiti: **listino prestazioni**, **cartella clinica** (anamnesi cifrata + visite datate con tipi visita: podologica, onicopatie, verruca, diabetico, extra + foto cliniche cifrate su disco), **ortesi/plantari** con stati di lavorazione.

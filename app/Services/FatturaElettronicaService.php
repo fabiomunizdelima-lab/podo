@@ -99,6 +99,13 @@ class FatturaElettronicaService
         $this->text($dom, $dgd, 'Divisa', $cfg['currency'] ?: 'EUR');
         $this->text($dom, $dgd, 'Data', optional($invoice->issued_at)->format('Y-m-d') ?: now()->format('Y-m-d'));
         $this->text($dom, $dgd, 'Numero', (string) $invoice->full_number);
+        if ((float) $invoice->withholding_amount > 0) {
+            $ritenuta = $this->child($dom, $dgd, 'DatiRitenuta');
+            $this->text($dom, $ritenuta, 'TipoRitenuta', $cfg['withholding_type'] ?? 'RT01');
+            $this->text($dom, $ritenuta, 'ImportoRitenuta', $this->num($invoice->withholding_amount));
+            $this->text($dom, $ritenuta, 'AliquotaRitenuta', $this->num($cfg['withholding_rate'] ?? 20.0));
+            $this->text($dom, $ritenuta, 'CausalePagamento', $cfg['withholding_causale'] ?? 'A');
+        }
         if ((float) $invoice->stamp_amount > 0) {
             $bollo = $this->child($dom, $dgd, 'DatiBollo');
             $this->text($dom, $bollo, 'BolloVirtuale', 'SI');
@@ -116,6 +123,9 @@ class FatturaElettronicaService
             $this->text($dom, $dl, 'PrezzoUnitario', $this->num($line->unit_price));
             $this->text($dom, $dl, 'PrezzoTotale', $this->num($line->line_total));
             $this->text($dom, $dl, 'AliquotaIVA', $this->num($line->vat_rate));
+            if ((float) $invoice->withholding_amount > 0) {
+                $this->text($dom, $dl, 'Ritenuta', 'SI');
+            }
             if ($line->vat_nature) {
                 $this->text($dom, $dl, 'Natura', $line->vat_nature);
             }
@@ -125,7 +135,13 @@ class FatturaElettronicaService
         $groups = [];
         foreach ($invoice->lines as $line) {
             $key = $line->vat_rate.'|'.($line->vat_nature ?? '');
+            if ((float) $invoice->withholding_amount > 0) {
+                $this->text($dom, $dl, 'Ritenuta', 'SI');
+            }
             $groups[$key] ??= ['rate' => $line->vat_rate, 'nature' => $line->vat_nature, 'taxable' => 0];
+            if ((float) $invoice->withholding_amount > 0) {
+                $this->text($dom, $dl, 'Ritenuta', 'SI');
+            }
             $groups[$key]['taxable'] += (float) $line->line_total;
         }
         foreach ($groups as $g) {
