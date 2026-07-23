@@ -32,3 +32,20 @@ yarn-error.log
 /storage/app/backups
 /storage/app/documenti
 /storage/app/pazienti
+
+# --- Aggiunte: igiene repo e dati sensibili ---
+# Backup temporanei e copie del .env
+*.bak
+.env.*
+!.env.example
+
+# File compilati / cache (non vanno versionati)
+/bootstrap/cache/*.php
+/storage/framework/cache/*
+/storage/framework/sessions/*
+/storage/framework/views/*.php
+/storage/logs/*
+
+# Foto cliniche cifrate dei pazienti e temporanei di backup — MAI nel repo
+/storage/app/clinical
+/storage/app/backup-temp

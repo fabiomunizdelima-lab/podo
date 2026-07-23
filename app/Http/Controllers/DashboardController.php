@@ -11,6 +11,11 @@ class DashboardController extends Controller
 {
     public function index(Request $request)
     {
+        // Un account paziente non ha una dashboard gestionale: va alla sua cartella.
+        if ($request->user()->isPatient()) {
+            return redirect()->route('portal.record');
+        }
+
         $today = now()->startOfDay();
 
         $stats = [

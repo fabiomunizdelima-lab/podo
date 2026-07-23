@@ -44,7 +44,13 @@ class PatientController extends Controller
 
     public function show(Patient $patient)
     {
-        $patient->load(['appointments' => fn ($q) => $q->latest('starts_at')->limit(20)]);
+        $patient->load([
+            'appointments' => fn ($q) => $q->latest('starts_at')->limit(20),
+            'clinicalRecord',
+            'clinicalVisits' => fn ($q) => $q->with('treatments')->withCount('photos')->limit(50),
+            'clinicalPhotos' => fn ($q) => $q->latest('taken_at')->limit(60),
+            'orthoses',
+        ]);
 
         return view('patients.show', compact('patient'));
     }

@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Spatie\Activitylog\LogOptions;
 use Spatie\Activitylog\Traits\LogsActivity;
@@ -45,7 +46,6 @@ class Patient extends Model
     {
         return [
             'birth_date' => 'date',
-            // Dati sanitari e di contatto cifrati a riposo
             'clinical_notes' => 'encrypted',
             'consent_privacy' => 'boolean',
             'consent_whatsapp' => 'boolean',
@@ -59,12 +59,32 @@ class Patient extends Model
         return $this->hasMany(Appointment::class);
     }
 
+    public function clinicalRecord(): HasOne
+    {
+        return $this->hasOne(ClinicalRecord::class);
+    }
+
+    public function clinicalVisits(): HasMany
+    {
+        return $this->hasMany(ClinicalVisit::class)->latest('visited_at');
+    }
+
+    public function clinicalPhotos(): HasMany
+    {
+        return $this->hasMany(ClinicalPhoto::class)->latest('taken_at');
+    }
+
+    /** Ortesi / plantari su misura. */
+    public function orthoses(): HasMany
+    {
+        return $this->hasMany(Orthosis::class)->latest('prescribed_at');
+    }
+
     public function getFullNameAttribute(): string
     {
         return trim("{$this->first_name} {$this->last_name}");
     }
 
-    /** Numero in formato internazionale E.164 per WhatsApp (best-effort). */
     public function whatsappE164(): ?string
     {
         $raw = $this->whatsapp_phone ?: $this->phone;
@@ -75,7 +95,6 @@ class Patient extends Model
         if (str_starts_with($digits, '00')) {
             $digits = substr($digits, 2);
         } elseif (str_starts_with($digits, '3') && strlen($digits) <= 11) {
-            // Numero italiano senza prefisso internazionale
             $digits = '39'.$digits;
         }
         return $digits ?: null;

@@ -23,7 +23,6 @@ class LoginController extends Controller
             'password' => ['required', 'string'],
         ]);
 
-        // Solo utenti attivi possono autenticarsi
         $credentials['is_active'] = true;
 
         if (! Auth::attempt($credentials, $request->boolean('remember'))) {
@@ -31,6 +30,9 @@ class LoginController extends Controller
                 'email' => $request->input('email'),
                 'ip' => $request->ip(),
             ]);
+            activity('accessi')->event('login_failed')
+                ->withProperties(['email' => $request->input('email'), 'ip' => $request->ip()])
+                ->log('Accesso fallito');
 
             throw ValidationException::withMessages([
                 'email' => __('Credenziali non valide.'),
@@ -38,7 +40,6 @@ class LoginController extends Controller
         }
 
         $request->session()->regenerate();
-        // Reset stato MFA all'inizio di una nuova sessione
         $request->session()->forget('mfa_passed');
 
         $user = $request->user();
@@ -52,13 +53,23 @@ class LoginController extends Controller
             'role' => $user->role?->value,
             'ip' => $request->ip(),
         ]);
+        activity('accessi')->causedBy($user)->event('login')
+            ->withProperties(['ip' => $request->ip()])
+            ->log('Accesso effettuato');
 
         return redirect()->intended(route('dashboard'));
     }
 
     public function logout(Request $request): RedirectResponse
     {
-        $userId = $request->user()?->id;
+        $user = $request->user();
+        $userId = $user?->id;
+
+        if ($user) {
+            activity('accessi')->causedBy($user)->event('logout')
+                ->withProperties(['ip' => $request->ip()])
+                ->log('Disconnessione');
+        }
 
         Auth::guard('web')->logout();
         $request->session()->invalidate();
