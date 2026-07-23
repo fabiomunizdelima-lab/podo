@@ -5,6 +5,10 @@ Versionamento: [SemVer](https://semver.org/lang/it/). La versione corrente è in
 
 ## [Non rilasciato]
 
+## [0.2.2] - 2026-07-23
+### Aggiunto
+- **Fatture a strutture** dall'interfaccia: nel form si sceglie l'intestatario tra **Paziente** o **Struttura** (denominazione, P.IVA, codice fiscale, indirizzo liberi). Prima il modello lo consentiva ma il form obbligava a un paziente.
+
 ## [0.2.1] - 2026-07-23
 ### Corretto
 - **FatturaPA**: l'XML ora include `<DatiRitenuta>` (TipoRitenuta, ImportoRitenuta, AliquotaRitenuta, CausalePagamento) e il flag `<Ritenuta>SI</Ritenuta>` sulle righe quando la ritenuta d'acconto è attiva. Prima veniva calcolata ma non scritta nel file.

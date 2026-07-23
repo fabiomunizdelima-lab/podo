@@ -24,23 +24,45 @@
     </div>
 
     <form method="POST" action="{{ $action }}" class="card p-5"
-          x-data="invoiceForm({{ Illuminate\Support\Js::from($catalog) }}, {{ Illuminate\Support\Js::from($existingLines) }})">
+          x-data="invoiceForm({{ Illuminate\Support\Js::from($catalog) }}, {{ Illuminate\Support\Js::from($existingLines) }}, '{{ old('client_type', 'patient') }}')">
         @csrf
         @if ($isEdit) @method('PUT') @endif
 
         <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
-                <label class="label" for="patient_id">Paziente *</label>
+                <label class="label">Intestatario *</label>
                 @if ($isEdit || $patient)
-                    <input class="input bg-slate-50" value="{{ $invoice->client_name ?: $patient->full_name }}" disabled>
-                    <input type="hidden" name="patient_id" value="{{ $invoice->patient_id ?: $patient->id }}">
+                    <input class="input bg-slate-50" value="{{ $invoice->client_name ?: ($patient->full_name ?? '') }}" disabled>
+                    @if (! $isEdit)
+                        <input type="hidden" name="client_type" value="patient">
+                        <input type="hidden" name="patient_id" value="{{ $patient->id }}">
+                    @endif
                 @else
-                    <select class="input" id="patient_id" name="patient_id" required>
-                        <option value="">— seleziona —</option>
-                        @foreach ($patients as $p)
-                            <option value="{{ $p->id }}" @selected(old('patient_id') == $p->id)>{{ $p->last_name }} {{ $p->first_name }}</option>
-                        @endforeach
-                    </select>
+                    <div class="mb-2 flex gap-4 text-sm">
+                        <label class="flex items-center gap-1"><input type="radio" name="client_type" value="patient" x-model="clientType"> Paziente</label>
+                        <label class="flex items-center gap-1"><input type="radio" name="client_type" value="struttura" x-model="clientType"> Struttura</label>
+                    </div>
+                    <div x-show="clientType === 'patient'">
+                        <select class="input" name="patient_id" x-bind:required="clientType === 'patient'">
+                            <option value="">— seleziona —</option>
+                            @foreach ($patients as $p)
+                                <option value="{{ $p->id }}" @selected(old('patient_id') == $p->id)>{{ $p->last_name }} {{ $p->first_name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div x-show="clientType === 'struttura'" x-cloak class="space-y-2">
+                        <input class="input" name="client_name" placeholder="Denominazione struttura *" value="{{ old('client_name') }}" x-bind:required="clientType === 'struttura'">
+                        <div class="grid grid-cols-2 gap-2">
+                            <input class="input" name="client_vat" placeholder="P.IVA" value="{{ old('client_vat') }}">
+                            <input class="input" name="client_fiscal_code" placeholder="Cod. fiscale" value="{{ old('client_fiscal_code') }}">
+                        </div>
+                        <input class="input" name="client_address" placeholder="Indirizzo" value="{{ old('client_address') }}">
+                        <div class="grid grid-cols-3 gap-2">
+                            <input class="input" name="client_cap" placeholder="CAP" value="{{ old('client_cap') }}">
+                            <input class="input col-span-2" name="client_city" placeholder="Città" value="{{ old('client_city') }}">
+                        </div>
+                        <input class="input" name="client_province" placeholder="Prov." maxlength="4" value="{{ old('client_province') }}">
+                    </div>
                 @endif
             </div>
             <div>
@@ -84,9 +106,10 @@
 
 @push('scripts')
 <script>
-    function invoiceForm(catalog, existing) {
+    function invoiceForm(catalog, existing, initialClientType) {
         return {
             catalog,
+            clientType: initialClientType || 'patient',
             lines: existing.length ? existing.map(l => ({
                 treatment_id: l.treatment_id ?? '',
                 description: l.description ?? '',

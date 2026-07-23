@@ -54,28 +54,53 @@ class InvoiceController extends Controller
     public function store(Request $request)
     {
         $data = $request->validate([
-            'patient_id' => ['required', 'exists:patients,id'],
+            'client_type' => ['required', 'in:patient,struttura'],
+            'patient_id' => ['nullable', 'required_if:client_type,patient', 'exists:patients,id'],
+            'client_name' => ['nullable', 'required_if:client_type,struttura', 'string', 'max:200'],
+            'client_fiscal_code' => ['nullable', 'string', 'max:16'],
+            'client_vat' => ['nullable', 'string', 'max:20'],
+            'client_address' => ['nullable', 'string', 'max:200'],
+            'client_city' => ['nullable', 'string', 'max:100'],
+            'client_cap' => ['nullable', 'string', 'max:10'],
+            'client_province' => ['nullable', 'string', 'max:4'],
             'notes' => ['nullable', 'string', 'max:1000'],
         ]);
 
-        $patient = Patient::findOrFail($data['patient_id']);
         $cfg = Setting::billing();
 
-        $invoice = Invoice::create([
-            'patient_id' => $patient->id,
+        if ($data['client_type'] === 'patient') {
+            $patient = Patient::findOrFail($data['patient_id']);
+            $client = [
+                'patient_id' => $patient->id,
+                'client_name' => $patient->full_name,
+                'client_fiscal_code' => $patient->fiscal_code,
+                'client_vat' => null,
+                'client_address' => $patient->address,
+                'client_city' => $patient->city,
+                'client_cap' => $patient->postal_code,
+                'client_province' => $patient->province,
+            ];
+        } else {
+            $client = [
+                'patient_id' => null,
+                'client_name' => $data['client_name'],
+                'client_fiscal_code' => $data['client_fiscal_code'] ?? null,
+                'client_vat' => $data['client_vat'] ?? null,
+                'client_address' => $data['client_address'] ?? null,
+                'client_city' => $data['client_city'] ?? null,
+                'client_cap' => $data['client_cap'] ?? null,
+                'client_province' => $data['client_province'] ?? null,
+            ];
+        }
+
+        $invoice = Invoice::create(array_merge($client, [
             'created_by' => $request->user()->id,
             'status' => InvoiceStatus::DRAFT,
-            'client_name' => $patient->full_name,
-            'client_fiscal_code' => $patient->fiscal_code,
-            'client_address' => $patient->address,
-            'client_city' => $patient->city,
-            'client_cap' => $patient->postal_code,
-            'client_province' => $patient->province,
             'vat_exempt' => true,
             'vat_nature' => $cfg['vat_nature'],
             'regime' => $cfg['regime'],
             'notes' => $data['notes'] ?? null,
-        ]);
+        ]));
 
         $this->syncLines($invoice, $request);
 
