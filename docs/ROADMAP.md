@@ -1,13 +1,13 @@
 # Podo — Roadmap
 
-Rifacimento moderno di **SmartPodos** (gestionale podologico). Stato aggiornato al 2026-07-23.
+Rifacimento moderno di **SmartPodos** (gestionale podologico). Aggiornato al 2026-07-23.
 
 ---
 
 ## ✅ Fatto
 
 ### Fase 1 (foundation preesistente)
-- Autenticazione, RBAC, MFA TOTP (attualmente **disattivata in dev**).
+- Autenticazione, RBAC, MFA TOTP (**attualmente disattivata**, da riattivare prima della produzione).
 - Anagrafica pazienti + consensi GDPR.
 - Agenda / appuntamenti (FullCalendar).
 - Sincronizzazione Google Calendar (OAuth2).
@@ -15,63 +15,78 @@ Rifacimento moderno di **SmartPodos** (gestionale podologico). Stato aggiornato 
 - Audit log su file, backup cifrato schedulato (spatie).
 
 ### Moduli SmartPodos ricostruiti
-- **Prestazioni / Listino** — catalogo con prezzo, IVA/natura FatturaPA (N4 esente art.10), durata.
+- **Prestazioni / Listino** — catalogo con prezzo, IVA/natura FatturaPA, durata.
 - **Cartella clinica** — anamnesi unica cifrata + visite datate (campi clinici cifrati) + **tipi di visita** (podologica, onicopatie, verruca, paziente diabetico, extra) + prestazioni erogate da listino + **foto cliniche cifrate su disco**.
-- **Ortesi / plantari su misura** — tipo, materiale, specifiche, stati di lavorazione (prescritto → in lavorazione → pronto → consegnato).
-- **Fatturazione (Ricevute sanitarie)** — bozza da visita → emissione con numerazione → **PDF**, **XML FatturaPA (SDI v1.2)**, **export Sistema TS**; regime flessibile forfettario/ordinario; bollo automatico; ritenuta configurabile.
-- **Impostazioni** — dati studio/fatturazione da UI (tabella settings), letti da PDF/XML/TS.
-- **Ruoli & Audit**:
-  - Superadmin (tutto), Admin (tutto ma i superadmin sono invisibili/intoccabili), Utente = paziente (portale sola-lettura della propria cartella).
-  - Registro di audit (accessi + modifiche) con filtri; admin non vede le attività dei superadmin.
+- **Ortesi / plantari su misura** — tipo, materiale, specifiche, stati di lavorazione.
+- **Fatturazione** — bozza da visita → emissione con numerazione → PDF, XML FatturaPA (SDI v1.2), export Sistema TS; regime flessibile; bollo automatico; ritenuta configurabile.
+- **Impostazioni** — dati studio/fatturazione da UI, letti da PDF/XML/TS.
+- **Ruoli & Audit** — superadmin / admin (i superadmin gli sono invisibili) / utente = paziente con portale in sola lettura; registro di audit (accessi + modifiche) filtrato per ruolo.
+- **Aggiornamenti applicativo** — controllo versione da Git e update con barra di avanzamento (backup → pull → composer → migrazioni → asset → cache).
+
+### Migrazione dati (23 lug 2026)
+- **Importatore FatturaPA** (`podo:import-fatturapa`), idempotente e con `--dry-run`:
+  importati **1.043 pazienti** e **2.602 fatture** (nov 2022 → apr 2025, € 181.364,50).
+- Fatture **senza paziente** ora possibili (lo studio fattura anche a strutture).
+- Dati fiscali reali ricavati dalle fatture e impostati: P.IVA, **regime RF01 ordinario**, sede.
+- Codice tipologia spesa Sistema TS corretto (**SP**, era SR).
 
 ---
 
 ## 🕒 Da completare
 
 ### A. Funzionalità
-- [ ] **Pagamenti / scadenzario** — incassi, stato pagamento fatture, insoluti, metodi di pagamento tracciati.
+- [ ] **Pagamenti / scadenzario** — incassi, stato pagamento, insoluti, metodi tracciati.
 - [ ] **Report / statistiche** — fatturato per periodo, prestazioni più frequenti, nuovi pazienti, ortesi in lavorazione.
-- [ ] **Ricevuta vs Fattura** — tipo-documento distinto con numerazione separata (tipico del forfettario).
-- [ ] **Appuntamento → visita** — generare una visita clinica direttamente da un appuntamento in agenda.
+- [ ] **Fatture a strutture/aziende nell'interfaccia** — il modello le supporta (19 storiche importate) ma il form permette di scegliere solo un paziente: manca il cliente-azienda con denominazione e P.IVA.
+- [ ] **`<DatiRitenuta>` nell'XML** — la ritenuta viene calcolata ma non scritta nel file FatturaPA (19 fatture reali la usano).
+- [ ] **Appuntamento → visita** — generare una visita clinica da un appuntamento in agenda.
 - [ ] Widget dashboard (fatture non pagate, ortesi da consegnare, agenda del giorno).
+- [ ] Valutare **Ricevuta vs Fattura**: lo studio è in regime ordinario ed emette TD01, quindi la ricevuta sanitaria potrebbe non servire.
 
-### B. Migrazione dati storici da SmartPodos
-Il DB originale è il file binario Omnis `VSMP530.smp`, non leggibile senza Omnis Studio:
-la migrazione avviene tramite gli **export** già estratti dal cliente.
-- [ ] **Importatore anagrafiche** dai dati estratti (pazienti storici).
-- [ ] **Importatore fatture/prestazioni** dagli XML di fattura elettronica.
-- [ ] **Importatore fatturati XLSX** e dati Sistema TS.
-- [ ] Riconciliazione: match pazienti per codice fiscale, gestione duplicati, report di import.
-- [ ] Storico clinico: valutare cosa è recuperabile dagli export (le cartelle cliniche potrebbero non essere negli export).
+### B. Migrazione dati storici (resto)
+SmartPodos è un applicativo **FileMaker Pro 12** (non Omnis): il database `VSMP530.smp`
+tiene i dati in blocchi compressi, quindi serve FileMaker (o l'export dal runtime)
+per estrarre ciò che non è nelle fatture.
+- [x] Anagrafiche e fatturato dagli XML FatturaPA.
+- [ ] **Coordinare l'export del cliente** (823 pazienti, 1.555 fatture, 124 appuntamenti):
+      capire la fonte e decidere se integra o sostituisce l'import attuale.
+- [ ] **Agenda storica** (gli appuntamenti non sono ricavabili dalle fatture).
+- [ ] **Cartelle cliniche / anamnesi** — solo dentro il FileMaker.
+- [ ] **Foto cliniche**: 148 immagini in `Files/Images/Secure`, ma il legame foto↔paziente è nel DB.
+- [ ] Importatore XLSX fatturati e storico Sistema TS (110 CSV + 233 XML).
 
 ### C. Pre-produzione (bloccanti)
-- [ ] **Reset password + SMTP** — oggi NON esiste recupero password; configurare mail e flusso "password dimenticata" (serve al portale paziente).
-- [ ] **Backup off-site** — il backup è schedulato ma va verificata la destinazione: i dati sanitari (art. 9) non devono restare solo sulla stessa VM (es. S3 su .43 o host .73).
-- [ ] **Riattivare MFA** per gli amministratori (`MFA_REQUIRED_FOR_ADMINS=true`).
-- [ ] **Dati fiscali reali** in Impostazioni + **validazione XML** contro lo schema SDI ufficiale prima del primo invio.
+- [ ] **Reset password + SMTP** — non esiste il recupero password; serve al portale paziente.
+- [ ] **Backup off-site** — schedulato, ma va verificata la destinazione: i dati sanitari non devono restare solo su questa macchina.
+- [ ] **Riattivare MFA** (`MFA_REQUIRED_FOR_ADMINS=true` + **ricreare i container**, non basta `config:cache`).
+- [ ] **Completare i dati fiscali** (codice fiscale e indirizzo mancanti) e **validare l'XML** contro lo schema SDI ufficiale.
 - [ ] **HTTPS / dominio** su Nginx Proxy Manager con certificato.
 - [ ] **Pulizia dati demo** (paziente "Demo Cartella", fattura 1/2026, account paziente.demo, righe audit di test).
 
-### D. Adempimenti fiscali reali (oltre la generazione file)
-- [ ] **Invio allo SDI** — l'app genera l'XML ma non lo trasmette: serve un canale (intermediario/commercialista o accredito SDI).
-- [ ] **Conservazione a norma** delle fatture elettroniche (obbligo di conservazione digitale a 10 anni).
-- [ ] **Invio Sistema TS reale** — oggi c'è l'export CSV: servono credenziali TS, tracciato ufficiale e codice tipologia spesa corretto.
+### D. Adempimenti fiscali reali
+- [ ] **Invio allo SDI** — l'app genera l'XML ma non lo trasmette: serve un canale (intermediario/commercialista).
+- [ ] **Conservazione a norma** delle fatture elettroniche (10 anni).
+- [ ] **Invio Sistema TS reale** — servono credenziali e certificati TS (quelli del cliente sono in `SistemaTS/Dati`).
 
-### E. Rafforzamenti GDPR / sicurezza
-- [ ] Cifrare anche **CF, email, telefono, indirizzo** (oggi cifrate solo le note cliniche) con blind-index sul codice fiscale per la ricerca.
-- [ ] **Export dati paziente** (portabilità) e **cancellazione definitiva** (diritto all'oblio).
-- [ ] **Retention**: cancellazione automatica dei dati oltre i termini di conservazione.
-- [ ] **DPIA** (valutazione d'impatto) — trattamento su larga scala di dati sanitari.
-- [ ] Invio dell'audit trail a un **SIEM esterno** (previsto dal commento in config/logging).
+### E. GDPR / sicurezza
+- [ ] **Bonifica GitHub**: chiedere a GitHub Support la rimozione del commit orfano `1e8f7dd`, che conteneva dati di pazienti; valutare di rendere **privato** il repository.
+- [ ] Cifrare anche **CF, email, telefono, indirizzo** (oggi solo le note cliniche) con blind-index sul codice fiscale.
+- [ ] **Export dati paziente** (portabilità) e **cancellazione definitiva** (oblio).
+- [ ] **Retention**: cancellazione automatica oltre i termini di conservazione.
+- [ ] **DPIA** — trattamento su larga scala di dati sanitari.
+- [ ] Audit trail verso un **SIEM esterno**.
 - [ ] **Test automatici** sui moduli nuovi (phpunit è configurato).
 
 ### F. Esercizio / manutenzione
 - [ ] **Monitoraggio e alerting** (uptime, spazio disco, esito backup).
-- [ ] **Aggiornamenti e advisory**: `composer audit` segnala 3 advisory su dompdf — valutare mitigazione o alternativa.
+- [ ] **Advisory**: `composer audit` segnala 3 advisory su dompdf — mitigare o sostituire.
 - [ ] Procedura documentata di **restore** del backup (un backup non testato non è un backup).
 
 ---
 
-## Note
-- Accesso VM dev: `192.168.0.83` (podo-dev), root via chiave SSH.
+## Note operative
+- Macchina dev: `192.168.0.83` — **container LXC** Proxmox (non una VM), Debian 12.
+  Accesso anche da remoto via Tailscale (`podo-dev`).
 - Stack: Laravel 11 / PostgreSQL 16 / Redis 7 / Docker Compose, dietro Nginx Proxy Manager.
+- Modifiche al `.env` richiedono `docker compose up -d`: le variabili sono iniettate
+  all'avvio del container e hanno precedenza sul file.
