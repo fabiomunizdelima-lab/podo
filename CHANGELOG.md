@@ -5,6 +5,10 @@ Versionamento: [SemVer](https://semver.org/lang/it/). La versione corrente è in
 
 ## [Non rilasciato]
 
+## [0.2.4] - 2026-07-23
+### Aggiunto
+- Import cartelle cliniche e ortesi da SmartPodos (FileMaker via ODBC): 1.532 visite (podologiche + onicopatie) e 59 ortesi, agganciate ai pazienti per legacy_fm_id; campi clinici cifrati. Comando `podo:import-cliniche` + colonna `legacy_ref` (idempotenza).
+
 ## [0.2.3] - 2026-07-23
 ### Aggiunto
 - Migrazione anagrafica da SmartPodos (FileMaker): comando `podo:import-pazienti` + colonna `legacy_fm_id`. Pazienti importati/arricchiti con match sul codice fiscale — 2.013 totali (+970 nuovi; arricchiti con nascita, sesso, telefoni, consenso e note cliniche cifrate). `legacy_fm_id` collega le future cartelle cliniche.
