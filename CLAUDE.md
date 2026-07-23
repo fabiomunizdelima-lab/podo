@@ -125,3 +125,28 @@ Il lavoro residuo è tracciato in **`docs/ROADMAP.md`** — leggilo prima di pro
 I punti bloccanti per la produzione: recupero password + SMTP (assente), backup off-site,
 riattivazione MFA, dati fiscali completi e validazione XML contro lo schema SDI, HTTPS,
 pulizia dei dati demo.
+
+---
+
+## Versioning e rilascio (agg. 2026-07-23)
+
+Versione in `VERSION` (SemVer). Attuale **0.2.0**. Schema: patch `0.2.1 … 0.2.99` → minor `0.3.0`,
+fino a `1.0.0` alla messa in produzione. **Mai** diminuire la versione: l'updater usa
+`version_compare` e non rileverebbe l'aggiornamento.
+
+Branch canonico: **`main`** (l'updater punta lì). Non creare più branch paralleli:
+al momento lavora **un solo agente**.
+
+Procedura di rilascio:
+1. aggiorna `VERSION` col nuovo numero;
+2. sposta le voci da `## [Non rilasciato]` a `## [x.y.z] - AAAA-MM-GG` in `CHANGELOG.md`;
+3. commit (path espliciti, mai `git add -A`);
+4. `git tag vX.Y.Z` sul commit;
+5. `git push origin main && git push origin vX.Y.Z`.
+
+L'aggiornamento in-app (Impostazioni → Aggiornamenti) rileva la nuova `VERSION` su
+`origin/main` ed esegue: backup DB → pull → composer → migrate → assets → cache.
+
+> Proprietà file: il repo è in `/root/podo` (dir 700) e i file sono di `www-data` (serve al
+> `git pull` dell'updater, che gira come www-data nel container). Se esegui git come root
+> sull'host, **ripristina** dopo: `chown -R www-data:www-data /root/podo`.

@@ -1,0 +1,24 @@
+# Changelog
+
+Tutte le modifiche rilevanti a **Podo**. Formato: [Keep a Changelog](https://keepachangelog.com/it/1.1.0/).
+Versionamento: [SemVer](https://semver.org/lang/it/). La versione corrente è in `VERSION`.
+
+## [Non rilasciato]
+
+## [0.2.0] - 2026-07-23
+### Aggiunto
+- Moduli SmartPodos ricostruiti: **listino prestazioni**, **cartella clinica** (anamnesi cifrata + visite datate con tipi visita: podologica, onicopatie, verruca, diabetico, extra + foto cliniche cifrate su disco), **ortesi/plantari** con stati di lavorazione.
+- **Fatturazione**: bozza da visita → emissione numerata → PDF (dompdf), **XML FatturaPA SDI v1.2**, export **Sistema TS**; bollo automatico, ritenuta configurabile; fatture anche **senza paziente** (strutture).
+- **Impostazioni** fiscali dello studio da UI (`Setting::billing()`).
+- **Aggiornamento applicativo** da Git con controllo versione e barra di avanzamento.
+- **Ruoli & Audit**: superadmin / admin / utente (portale paziente in sola lettura).
+- **Importatore FatturaPA** (`podo:import-fatturapa`), idempotente: importati **1.043 pazienti** e **2.602 fatture** (nov 2022 → apr 2025).
+### Modificato
+- Riconciliazione branch: **`main` reso canonico** (contiene il build completo); l'updater punta a `main`.
+### Sicurezza
+- Campi clinici e contatti cifrati a riposo (cast `encrypted`); header di sicurezza/CSP.
+
+## [0.1.0] - 2026-07-22
+### Aggiunto
+- Foundation: autenticazione, RBAC, **MFA TOTP** (attualmente disattivata), anagrafica pazienti + consensi GDPR, **agenda** (FullCalendar), sync **Google Calendar** (OAuth2), **promemoria WhatsApp** (Meta Cloud API), audit log, backup cifrato schedulato.
+- Deploy **Docker** su Debian/LXC dietro **Nginx Proxy Manager** (HTTP interno, TLS a monte).
