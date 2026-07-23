@@ -81,6 +81,7 @@ class ImportFatturaPa extends Command
 
         $bar->finish();
         $this->newLine(2);
+        $this->cleanupTemp();
         $this->report();
 
         return self::SUCCESS;
@@ -297,6 +298,26 @@ class ImportFatturaPa extends Command
         }
 
         return $lines;
+    }
+
+    /**
+     * Elimina gli XML estratti temporaneamente: contengono dati personali
+     * dei pazienti e non devono restare sul disco a fine importazione.
+     */
+    private function cleanupTemp(): void
+    {
+        $dir = storage_path('app/import-tmp');
+        if (! is_dir($dir)) {
+            return;
+        }
+        $it = new \RecursiveIteratorIterator(
+            new \RecursiveDirectoryIterator($dir, \FilesystemIterator::SKIP_DOTS),
+            \RecursiveIteratorIterator::CHILD_FIRST
+        );
+        foreach ($it as $f) {
+            $f->isDir() ? @rmdir($f->getPathname()) : @unlink($f->getPathname());
+        }
+        @rmdir($dir);
     }
 
     private function report(): void
