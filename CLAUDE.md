@@ -79,7 +79,7 @@ Il database contiene **anagrafiche reali di oltre mille pazienti** di uno studio
 - **Ruoli e audit** — superadmin / admin (i superadmin gli sono invisibili) / utente = il
   paziente stesso, con portale in sola lettura. Registro audit di accessi e modifiche.
 - **Importatore storico** — `php artisan podo:import-fatturapa <cartella> [--dry-run]`,
-  idempotente, legge gli archivi mensili di fatture elettroniche.
+  idempotente. Anche `podo:import-appuntamenti`, `podo:import-anamnesi`, `podo:import-foto` (agenda, anamnesi, foto): specifiche degli export in `docs/MIGRAZIONE.md`.
 
 ---
 

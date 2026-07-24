@@ -14,7 +14,7 @@ class ClinicalPhoto extends Model
     use SoftDeletes;
 
     protected $fillable = [
-        'patient_id', 'clinical_visit_id', 'disk', 'path',
+        'legacy_ref', 'patient_id', 'clinical_visit_id', 'disk', 'path',
         'original_name', 'mime', 'size', 'foot', 'caption', 'taken_at', 'uploaded_by',
     ];
 
