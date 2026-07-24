@@ -15,6 +15,11 @@
         </div>
 
         <div class="card p-6">
+            @if (session('status'))
+                <div class="mb-4 rounded-lg bg-green-50 px-3 py-2 text-sm text-green-800 ring-1 ring-green-200">
+                    {{ session('status') }}
+                </div>
+            @endif
             @if ($errors->any())
                 <div class="mb-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-800 ring-1 ring-red-200">
                     {{ $errors->first() }}

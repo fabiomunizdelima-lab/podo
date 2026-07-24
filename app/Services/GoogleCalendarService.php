@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Appointment;
 use App\Models\GoogleToken;
+use App\Models\Setting;
 use App\Models\User;
 use Google\Client as GoogleClient;
 use Google\Service\Calendar as GoogleCalendar;
@@ -15,35 +16,91 @@ use Illuminate\Support\Facades\Log;
  * Sincronizzazione agenda <-> Google Calendar (OAuth2).
  *
  * Flusso:
- *  1. L'utente collega il proprio account Google (/oauth/google/redirect).
- *  2. Salviamo access/refresh token cifrati (GoogleToken).
- *  3. Alla creazione/modifica di un appuntamento creiamo/aggiorniamo l'evento.
+ *  1. Il superadmin inserisce Client ID/Secret in Impostazioni -> Integrazioni.
+ *  2. L'utente collega il proprio account Google (/oauth/google/redirect).
+ *  3. Salviamo access/refresh token cifrati (GoogleToken).
+ *  4. Alla creazione/modifica di un appuntamento creiamo/aggiorniamo l'evento.
  */
 class GoogleCalendarService
 {
+    private ?array $cfg = null;
+
+    /** Credenziali dal DB (Impostazioni -> Integrazioni) con fallback sul .env. */
+    public function config(): array
+    {
+        return $this->cfg ??= Setting::google();
+    }
+
+    /** Ricarica la configurazione (usato dopo il salvataggio dalle impostazioni). */
+    public function refresh(): void
+    {
+        $this->cfg = null;
+    }
+
+    /** Credenziali presenti: il collegamento OAuth e possibile. */
+    public function isConfigured(): bool
+    {
+        $c = $this->config();
+
+        return ! empty($c['client_id']) && ! empty($c['client_secret']);
+    }
+
+    /** Integrazione attiva: credenziali presenti e interruttore acceso. */
     public function isEnabled(): bool
     {
-        return (bool) config('podo.google_calendar.enabled')
-            && config('podo.google_calendar.client_id')
-            && config('podo.google_calendar.client_secret');
+        return (bool) ($this->config()['enabled'] ?? false) && $this->isConfigured();
+    }
+
+    /**
+     * URI di callback comunicato a Google. Se non impostato esplicitamente
+     * viene dedotto dalla rotta, cosi resta coerente con il dominio dell'app.
+     */
+    public function redirectUri(): string
+    {
+        return $this->config()['redirect_uri'] ?: route('google.callback');
+    }
+
+    public function calendarId(): string
+    {
+        return $this->config()['calendar_id'] ?: 'primary';
     }
 
     public function client(): GoogleClient
     {
+        $c = $this->config();
+
         $client = new GoogleClient();
-        $client->setClientId(config('podo.google_calendar.client_id'));
-        $client->setClientSecret(config('podo.google_calendar.client_secret'));
-        $client->setRedirectUri(config('podo.google_calendar.redirect_uri'));
-        $client->setScopes([GoogleCalendar::CALENDAR_EVENTS]);
+        $client->setClientId($c['client_id']);
+        $client->setClientSecret($c['client_secret']);
+        $client->setRedirectUri($this->redirectUri());
+        $client->setScopes([GoogleCalendar::CALENDAR_EVENTS, 'email']);
         $client->setAccessType('offline');
         $client->setPrompt('consent');
 
         return $client;
     }
 
-    public function authUrl(): string
+    public function authUrl(?string $state = null): string
     {
-        return $this->client()->createAuthUrl();
+        $client = $this->client();
+        if ($state) {
+            $client->setState($state);
+        }
+
+        return $client->createAuthUrl();
+    }
+
+    /**
+     * Account Google da usare per la sincronizzazione: quello di chi ha creato
+     * l'appuntamento se collegato, altrimenti il primo account collegato dello studio.
+     */
+    protected function tokenOwner(?User $preferred): ?User
+    {
+        if ($preferred && GoogleToken::where('user_id', $preferred->id)->exists()) {
+            return $preferred;
+        }
+
+        return GoogleToken::query()->latest('updated_at')->first()?->user;
     }
 
     /** Costruisce un client autenticato per un utente, rinnovando il token se scaduto. */
@@ -70,6 +127,7 @@ class GoogleCalendarService
                 ]);
             } else {
                 Log::channel('audit')->error('google.token.refresh_failed', ['user_id' => $user->id]);
+
                 return null;
             }
         }
@@ -84,7 +142,7 @@ class GoogleCalendarService
             return null;
         }
 
-        $user = $appointment->creator ?? User::whereNotNull('id')->first();
+        $user = $this->tokenOwner($appointment->creator);
         if (! $user) {
             return null;
         }
@@ -95,11 +153,11 @@ class GoogleCalendarService
         }
 
         $service = new GoogleCalendar($client);
-        $calendarId = config('podo.google_calendar.calendar_id');
+        $calendarId = $this->calendarId();
 
         $event = new Event([
             'summary' => $appointment->title ?: ('Appuntamento - '.$appointment->patient?->full_name),
-            'description' => $appointment->treatment.' '.$appointment->notes,
+            'description' => trim($appointment->treatment.' '.$appointment->notes),
             'start' => new EventDateTime([
                 'dateTime' => $appointment->starts_at->toRfc3339String(),
                 'timeZone' => config('app.timezone'),
@@ -113,6 +171,7 @@ class GoogleCalendarService
         try {
             if ($appointment->google_event_id) {
                 $updated = $service->events->update($calendarId, $appointment->google_event_id, $event);
+
                 return $updated->getId();
             }
 
@@ -125,6 +184,7 @@ class GoogleCalendarService
                 'appointment_id' => $appointment->id,
                 'message' => $e->getMessage(),
             ]);
+
             return null;
         }
     }
@@ -135,7 +195,7 @@ class GoogleCalendarService
             return;
         }
 
-        $user = $appointment->creator;
+        $user = $this->tokenOwner($appointment->creator);
         if (! $user) {
             return;
         }
@@ -146,15 +206,41 @@ class GoogleCalendarService
         }
 
         try {
-            (new GoogleCalendar($client))->events->delete(
-                config('podo.google_calendar.calendar_id'),
-                $appointment->google_event_id
-            );
+            (new GoogleCalendar($client))->events->delete($this->calendarId(), $appointment->google_event_id);
         } catch (\Throwable $e) {
             Log::channel('audit')->warning('google.calendar.delete_failed', [
                 'appointment_id' => $appointment->id,
                 'message' => $e->getMessage(),
             ]);
+        }
+    }
+
+    /**
+     * Verifica il collegamento leggendo il calendario configurato.
+     * Ritorna [esito, messaggio] per il pulsante "Prova" delle impostazioni.
+     */
+    public function testConnection(User $user): array
+    {
+        if (! $this->isConfigured()) {
+            return [false, 'Inserisci prima Client ID e Client Secret.'];
+        }
+
+        $owner = $this->tokenOwner($user);
+        if (! $owner) {
+            return [false, 'Nessun account Google collegato: usa "Collega account".'];
+        }
+
+        $client = $this->authenticatedClient($owner);
+        if (! $client) {
+            return [false, 'Token non valido o scaduto: ricollega l\'account Google.'];
+        }
+
+        try {
+            $calendar = (new GoogleCalendar($client))->calendars->get($this->calendarId());
+
+            return [true, 'Collegamento riuscito · calendario "'.$calendar->getSummary().'".'];
+        } catch (\Throwable $e) {
+            return [false, 'Google ha risposto: '.$e->getMessage()];
         }
     }
 }

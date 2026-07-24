@@ -14,12 +14,14 @@ class SecurityHeaders
 {
     public function handle(Request $request, Closure $next): Response
     {
-        /** @var Response $response */
-        $response = $next($request);
-
-        // Content Security Policy: nonce per script inline necessari.
+        // Content Security Policy: nonce per gli script inline.
+        // Va generato PRIMA di $next(): le viste lo leggono mentre vengono renderizzate,
+        // altrimenti resterebbe vuoto e il browser bloccherebbe ogni <script> inline.
         $nonce = base64_encode(random_bytes(16));
         $request->attributes->set('csp_nonce', $nonce);
+
+        /** @var Response $response */
+        $response = $next($request);
 
         $directives = [
             "default-src 'self'",

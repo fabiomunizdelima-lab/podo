@@ -9,6 +9,8 @@ use Illuminate\Http\Request;
 /**
  * Impostazioni dello studio (ex "Utility applicazione" di SmartPodos).
  * Riservato al superadmin.
+ *
+ * Le credenziali dei servizi esterni stanno invece in IntegrationsController.
  */
 class SettingsController extends Controller
 {
@@ -22,8 +24,9 @@ class SettingsController extends Controller
         $billing = Setting::billing();
         $security = config('podo.security');
         $integrations = [
-            'whatsapp' => config('podo.whatsapp.enabled'),
-            'google_calendar' => config('podo.google_calendar.enabled'),
+            'mail' => (bool) Setting::mail()['enabled'],
+            'whatsapp' => (bool) Setting::whatsapp()['enabled'],
+            'google_calendar' => (bool) Setting::google()['enabled'],
         ];
         $update = [
             'current' => $updateSvc->currentVersion(),

@@ -4,11 +4,13 @@ use App\Http\Controllers\AppointmentController;
 use App\Http\Controllers\AuditController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\MfaController;
+use App\Http\Controllers\Auth\PasswordResetController;
 use App\Http\Controllers\ClinicalPhotoController;
 use App\Http\Controllers\ClinicalRecordController;
 use App\Http\Controllers\ClinicalVisitController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\GoogleOAuthController;
+use App\Http\Controllers\IntegrationsController;
 use App\Http\Controllers\InvoiceController;
 use App\Http\Controllers\MyRecordController;
 use App\Http\Controllers\OrthosisController;
@@ -23,6 +25,14 @@ use Illuminate\Support\Facades\Route;
 Route::middleware('guest')->group(function () {
     Route::get('/login', [LoginController::class, 'show'])->name('login');
     Route::post('/login', [LoginController::class, 'login'])->middleware('throttle:login');
+
+    // Recupero password via email
+    Route::get('/password/dimenticata', [PasswordResetController::class, 'request'])->name('password.request');
+    Route::post('/password/dimenticata', [PasswordResetController::class, 'email'])
+        ->middleware('throttle:6,1')->name('password.email');
+    Route::get('/password/reimposta/{token}', [PasswordResetController::class, 'reset'])->name('password.reset');
+    Route::post('/password/reimposta', [PasswordResetController::class, 'update'])
+        ->middleware('throttle:6,1')->name('password.update');
 });
 
 Route::post('/logout', [LoginController::class, 'logout'])
@@ -106,6 +116,7 @@ Route::middleware(['auth', 'mfa'])->group(function () {
         // Google Calendar OAuth
         Route::get('/oauth/google/redirect', [GoogleOAuthController::class, 'redirect'])->name('google.redirect');
         Route::get('/oauth/google/callback', [GoogleOAuthController::class, 'callback'])->name('google.callback');
+        Route::delete('/oauth/google', [GoogleOAuthController::class, 'disconnect'])->name('google.disconnect');
 
         // Amministrazione: gestione utenti + audit (admin e superadmin)
         Route::resource('users', UserController::class)->except(['show']);
@@ -115,6 +126,15 @@ Route::middleware(['auth', 'mfa'])->group(function () {
         Route::middleware('role:superadmin')->group(function () {
             Route::get('impostazioni', [SettingsController::class, 'edit'])->name('settings.edit');
             Route::put('impostazioni', [SettingsController::class, 'update'])->name('settings.update');
+
+            // Integrazioni: Google Calendar, email (SMTP), WhatsApp
+            Route::get('impostazioni/integrazioni', [IntegrationsController::class, 'edit'])->name('integrations.edit');
+            Route::put('impostazioni/integrazioni/google', [IntegrationsController::class, 'updateGoogle'])->name('integrations.google');
+            Route::put('impostazioni/integrazioni/email', [IntegrationsController::class, 'updateMail'])->name('integrations.mail');
+            Route::put('impostazioni/integrazioni/whatsapp', [IntegrationsController::class, 'updateWhatsapp'])->name('integrations.whatsapp');
+            Route::post('impostazioni/integrazioni/prova-google', [IntegrationsController::class, 'testGoogle'])->name('integrations.test_google');
+            Route::post('impostazioni/integrazioni/prova-email', [IntegrationsController::class, 'testMail'])->name('integrations.test_mail');
+            Route::post('impostazioni/integrazioni/prova-whatsapp', [IntegrationsController::class, 'testWhatsapp'])->name('integrations.test_whatsapp');
 
             // Aggiornamento applicativo
             Route::get('impostazioni/aggiornamenti/controlla', [UpdateController::class, 'check'])->name('update.check');

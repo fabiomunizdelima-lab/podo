@@ -5,21 +5,33 @@ namespace App\Http\Controllers;
 use App\Enums\AppointmentStatus;
 use App\Models\Appointment;
 use App\Models\Patient;
+use App\Models\Setting;
+use App\Services\AppointmentReminderService;
 use App\Services\GoogleCalendarService;
-use App\Services\WhatsAppService;
 use Illuminate\Http\Request;
 
 class AppointmentController extends Controller
 {
     public function __construct(
         private GoogleCalendarService $calendar,
-        private WhatsAppService $whatsapp,
+        private AppointmentReminderService $reminders,
     ) {}
 
     public function index()
     {
         $patients = Patient::where('is_active', true)->orderBy('last_name')->get(['id', 'first_name', 'last_name']);
-        return view('appointments.index', compact('patients'));
+
+        // Canali disponibili per il promemoria: mostriamo solo quelli configurati
+        $whatsappOn = (bool) Setting::whatsapp()['enabled'];
+        $mailOn = (bool) Setting::mail()['enabled'];
+        $channels = array_filter([
+            'whatsapp' => $whatsappOn ? 'WhatsApp' : null,
+            'email' => $mailOn ? 'Email' : null,
+            'none' => 'Nessuno',
+        ]);
+        $defaultChannel = $whatsappOn ? 'whatsapp' : ($mailOn ? 'email' : 'none');
+
+        return view('appointments.index', compact('patients', 'channels', 'defaultChannel'));
     }
 
     /** Feed JSON per il calendario (FullCalendar). */
@@ -40,6 +52,11 @@ class AppointmentController extends Controller
                 'extendedProps' => [
                     'status' => $a->status->label(),
                     'patient_id' => $a->patient_id,
+                    // servono al modale di modifica: senza, il salvataggio li azzererebbe
+                    'treatment' => $a->treatment,
+                    'notes' => $a->notes,
+                    'reminder_channel' => $a->reminder_channel,
+                    'reminder_sent' => (bool) $a->reminder_sent_at,
                 ],
             ]);
 
@@ -75,18 +92,16 @@ class AppointmentController extends Controller
         return $this->respond($request, null, 'Appuntamento eliminato.');
     }
 
-    /** Invio manuale del promemoria WhatsApp. */
-    public function sendReminder(Appointment $appointment)
+    /** Invio manuale del promemoria sul canale scelto per l'appuntamento. */
+    public function sendReminder(Request $request, Appointment $appointment)
     {
-        $ok = $this->whatsapp->sendAppointmentReminder($appointment);
-        if ($ok) {
-            $appointment->forceFill(['reminder_sent_at' => now()])->saveQuietly();
+        [$ok, $message] = $this->reminders->send($appointment);
+
+        if ($request->expectsJson()) {
+            return response()->json(['ok' => $ok, 'message' => $message], $ok ? 200 : 422);
         }
 
-        return back()->with(
-            $ok ? 'success' : 'error',
-            $ok ? 'Promemoria WhatsApp inviato.' : 'Invio non riuscito (verifica consenso paziente e configurazione WhatsApp).'
-        );
+        return back()->with($ok ? 'success' : 'error', $message);
     }
 
     private function respond(Request $request, ?Appointment $appointment, string $message)
@@ -94,6 +109,7 @@ class AppointmentController extends Controller
         if ($request->expectsJson()) {
             return response()->json(['ok' => true, 'message' => $message, 'appointment' => $appointment]);
         }
+
         return back()->with('success', $message);
     }
 
@@ -107,7 +123,7 @@ class AppointmentController extends Controller
             'status' => ['sometimes', 'in:'.implode(',', array_column(AppointmentStatus::cases(), 'value'))],
             'treatment' => ['nullable', 'string', 'max:150'],
             'notes' => ['nullable', 'string', 'max:2000'],
-            'reminder_channel' => ['sometimes', 'in:whatsapp,email,none'],
+            'reminder_channel' => ['sometimes', 'in:'.implode(',', AppointmentReminderService::CHANNELS)],
         ]);
     }
 }

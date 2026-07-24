@@ -76,4 +76,67 @@ class Setting extends Model
 
         return $out;
     }
+
+    /**
+     * Configurazione SMTP per l'invio email: default dal .env, sovrascritti dal DB.
+     * La password e cifrata a riposo (is_encrypted).
+     */
+    public static function mail(): array
+    {
+        $out = [
+            'enabled' => false,
+            'host' => (string) config('mail.mailers.smtp.host'),
+            'port' => (int) config('mail.mailers.smtp.port'),
+            'encryption' => 'tls',
+            'username' => (string) config('mail.mailers.smtp.username'),
+            'password' => (string) config('mail.mailers.smtp.password'),
+            'from_address' => (string) config('mail.from.address'),
+            'from_name' => (string) config('mail.from.name'),
+        ];
+
+        foreach (static::group('mail') as $k => $v) {
+            if ($v === null || $v === '') {
+                continue;
+            }
+            $out[$k] = match ($k) {
+                'enabled' => (bool) (int) $v,
+                'port' => (int) $v,
+                default => $v,
+            };
+        }
+
+        return $out;
+    }
+
+    /** Configurazione Google Calendar: default da config/podo.php sovrascritti dal DB. */
+    public static function google(): array
+    {
+        $out = config('podo.google_calendar');
+        foreach (static::group('google') as $k => $v) {
+            if ($v === null || $v === '') {
+                continue;
+            }
+            $out[$k] = $k === 'enabled' ? (bool) (int) $v : $v;
+        }
+
+        return $out;
+    }
+
+    /** Configurazione WhatsApp Cloud API: default da config/podo.php sovrascritti dal DB. */
+    public static function whatsapp(): array
+    {
+        $out = config('podo.whatsapp');
+        foreach (static::group('whatsapp') as $k => $v) {
+            if ($v === null || $v === '') {
+                continue;
+            }
+            $out[$k] = match ($k) {
+                'enabled' => (bool) (int) $v,
+                'reminder_hours_before' => (int) $v,
+                default => $v,
+            };
+        }
+
+        return $out;
+    }
 }

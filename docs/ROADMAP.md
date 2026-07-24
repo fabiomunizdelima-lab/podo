@@ -1,6 +1,6 @@
 # Podo — Roadmap
 
-Rifacimento moderno di **SmartPodos** (gestionale podologico). Aggiornato al 2026-07-23.
+Rifacimento moderno di **SmartPodos** (gestionale podologico). Aggiornato al 2026-07-24.
 
 ---
 
@@ -12,6 +12,12 @@ Rifacimento moderno di **SmartPodos** (gestionale podologico). Aggiornato al 202
 - Agenda / appuntamenti (FullCalendar).
 - Sincronizzazione Google Calendar (OAuth2).
 - Promemoria WhatsApp (Meta Cloud API).
+
+### Integrazioni e notifiche (0.3.0 — 24 lug 2026)
+- **Impostazioni → Integrazioni**: Google Calendar, SMTP e WhatsApp configurabili da UI, credenziali cifrate in `settings`, pulsanti di prova per ciascun servizio.
+- **Recupero password via email** (link monouso, 60 minuti) e **promemoria appuntamento via email**.
+- **Canale del promemoria** scelto sul form dell'agenda (WhatsApp / Email / Nessuno), rispettato anche dall'invio schedulato.
+- Correzioni: nonce CSP (gli script inline erano bloccati), `APP_URL`, perdita di trattamento e note in modifica appuntamento, `refresh_token` Google.
 - Audit log su file, backup cifrato schedulato (spatie).
 
 ### Moduli SmartPodos ricostruiti
@@ -56,7 +62,8 @@ per estrarre ciò che non è nelle fatture.
 - [ ] Importatore XLSX fatturati e storico Sistema TS (110 CSV + 233 XML).
 
 ### C. Pre-produzione (bloccanti)
-- [ ] **Reset password + SMTP** — non esiste il recupero password; serve al portale paziente.
+- [x] **Reset password + SMTP** (0.3.0) — recupero password via email e configurazione SMTP da Impostazioni → Integrazioni.
+      Resta da inserire le credenziali del mittente reale e provare l'invio.
 - [ ] **Backup off-site** — schedulato, ma va verificata la destinazione: i dati sanitari non devono restare solo su questa macchina.
 - [ ] **Riattivare MFA** (`MFA_REQUIRED_FOR_ADMINS=true` + **ricreare i container**, non basta `config:cache`).
 - [ ] **Completare i dati fiscali** (codice fiscale e indirizzo mancanti) e **validare l'XML** contro lo schema SDI ufficiale.

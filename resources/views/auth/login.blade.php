@@ -17,6 +17,7 @@
             <input type="checkbox" name="remember" class="rounded border-slate-300 text-brand-600 focus:ring-brand-500">
             Ricordami
         </label>
+        <a href="{{ route('password.request') }}" class="text-sm text-brand-600 underline">Password dimenticata?</a>
     </div>
     <button type="submit" class="btn-primary w-full">Accedi</button>
 </form>

@@ -140,18 +140,22 @@
 
     {{-- Stato sistema (sola lettura) --}}
     <div class="card mt-6 p-5 text-sm">
-        <h2 class="mb-3 text-sm font-semibold text-slate-700">Stato sistema</h2>
+        <div class="mb-3 flex items-center justify-between">
+            <h2 class="text-sm font-semibold text-slate-700">Stato sistema</h2>
+            <a href="{{ route('integrations.edit') }}" class="text-sm text-brand-600 underline">Configura integrazioni →</a>
+        </div>
         <dl class="grid grid-cols-1 gap-2 sm:grid-cols-2">
             <div class="flex justify-between"><dt class="text-slate-500">MFA obbligatoria admin</dt><dd>{{ ($security['mfa_required_for_admins'] ?? false) ? 'Attiva' : 'Disattivata (dev)' }}</dd></div>
+            <div class="flex justify-between"><dt class="text-slate-500">Email (SMTP)</dt><dd>{{ ($integrations['mail'] ?? false) ? 'Attiva' : 'Non configurata' }}</dd></div>
             <div class="flex justify-between"><dt class="text-slate-500">Promemoria WhatsApp</dt><dd>{{ ($integrations['whatsapp'] ?? false) ? 'Attivo' : 'Non configurato' }}</dd></div>
             <div class="flex justify-between"><dt class="text-slate-500">Google Calendar</dt><dd>{{ ($integrations['google_calendar'] ?? false) ? 'Attivo' : 'Non configurato' }}</dd></div>
         </dl>
-        <p class="mt-3 text-xs text-slate-400">MFA e integrazioni si configurano da .env (richiedono la ricreazione dei container: <span class="font-mono">docker compose up -d</span>).</p>
+        <p class="mt-3 text-xs text-slate-400">La MFA si imposta da .env (richiede <span class="font-mono">docker compose up -d</span>); le integrazioni si configurano dall'interfaccia.</p>
     </div>
 </div>
 
 @push('scripts')
-<script>
+<script nonce="{{ request()->attributes->get('csp_nonce') }}">
     function updater(initial) {
         return {
             current: initial.current || '—',

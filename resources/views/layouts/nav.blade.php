@@ -58,15 +58,23 @@
                         <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 3.5a1 1 0 011.9 0l.4 1.3a1 1 0 001.3.65l1.3-.4a1 1 0 011.2 1.2l-.4 1.3a1 1 0 00.65 1.3l1.3.4a1 1 0 010 1.9l-1.3.4a1 1 0 00-.65 1.3l.4 1.3a1 1 0 01-1.2 1.2l-1.3-.4a1 1 0 00-1.3.65l-.4 1.3a1 1 0 01-1.9 0l-.4-1.3a1 1 0 00-1.3-.65l-1.3.4a1 1 0 01-1.2-1.2l.4-1.3a1 1 0 00-.65-1.3l-1.3-.4a1 1 0 010-1.9l1.3-.4a1 1 0 00.65-1.3l-.4-1.3a1 1 0 011.2-1.2l1.3.4a1 1 0 001.3-.65l.4-1.3z"/><circle cx="12" cy="12" r="2.5"/></svg>
                         Impostazioni
                     </a>
+                    <a href="{{ route('integrations.edit') }}"
+                       class="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium {{ request()->routeIs('integrations.*') ? 'bg-brand-700 text-white' : 'text-brand-100 hover:bg-brand-800' }}">
+                        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                        Integrazioni
+                    </a>
                 @endif
             </div>
         </nav>
 
-        <div class="border-t border-brand-800 pt-3">
-            <a href="{{ route('google.redirect') }}" class="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-brand-100 hover:bg-brand-800">
-                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-                Collega Google Calendar
-            </a>
-        </div>
+        {{-- Collegamento Google: solo se le credenziali OAuth sono già state inserite --}}
+        @if (app(\App\Services\GoogleCalendarService::class)->isConfigured())
+            <div class="border-t border-brand-800 pt-3">
+                <a href="{{ route('google.redirect') }}" class="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-brand-100 hover:bg-brand-800">
+                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                    Collega Google Calendar
+                </a>
+            </div>
+        @endif
     @endif
 </div>

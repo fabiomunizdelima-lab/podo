@@ -5,6 +5,27 @@ Versionamento: [SemVer](https://semver.org/lang/it/). La versione corrente è in
 
 ## [Non rilasciato]
 
+## [0.3.0] - 2026-07-24
+### Aggiunto
+- **Impostazioni → Integrazioni**: pagina unica per Google Calendar, email (SMTP) e WhatsApp. Le credenziali si inseriscono dall'interfaccia e finiscono **cifrate** nella tabella `settings` (`Setting::set(..., encrypt: true)`): non serve più toccare il `.env` né ricreare i container. I segreti non tornano mai al browser e un campo lasciato vuoto lascia invariato il valore già salvato.
+- **Pulsanti di prova** per i tre servizi: invio di un'email di test, messaggio WhatsApp di test, verifica del collegamento a Google Calendar (legge il calendario configurato).
+- **Recupero password via email**: link "Password dimenticata?" in login, collegamento monouso valido 60 minuti (broker standard, tabella `password_reset_tokens`), email in italiano. Le risposte sono identiche a prescindere dall'esito, per non rivelare quali indirizzi esistono; gli account disattivati non ricevono nulla.
+- **Promemoria appuntamento via email** (`AppointmentReminderMail`): contiene solo data, ora, prestazione e indirizzo dello studio, nessun dato clinico.
+- **Scelta del canale** (WhatsApp / Email / Nessuno) sul form dell'agenda, con pulsante "Invia ora" e stato dell'invio. `podo:send-reminders` smista sul canale scelto per ciascun appuntamento.
+- Collegamento Google: parametro `state` anti-CSRF, indirizzo dell'account collegato (colonna additiva `google_tokens.account_email`), pulsante **Scollega**.
+
+### Corretto
+- **CSP: il nonce veniva generato dopo il rendering della vista**, quindi nelle pagine restava vuoto e il browser bloccava ogni `<script>` inline — barra di avanzamento degli aggiornamenti, agenda, form fattura e form visita. Ora è generato prima di `$next()`, e il nonce è stato aggiunto ai tre `<script>` che ne erano privi.
+- **Agenda**: aprendo un appuntamento esistente, trattamento e note non venivano ricaricati nel modale e il salvataggio li azzerava. Ora il feed li restituisce insieme al canale del promemoria.
+- `APP_URL` puntava ancora a `podo.example.it`: erano sbagliati i link nelle email e l'URI di reindirizzamento OAuth.
+- Google Calendar: la sincronizzazione richiedeva che fosse *chi ha creato* l'appuntamento ad avere l'account collegato, ora ricade sull'account dello studio. Il `refresh_token`, che Google invia solo al primo consenso, non viene più sovrascritto con `null` ai collegamenti successivi.
+
+### Modificato
+- `GoogleCalendarService` e `WhatsAppService` leggono la configurazione da `Setting` (DB) con fallback sul `.env`. `WhatsAppService::sendAppointmentReminder()` ritorna `[esito, messaggio]` invece di un booleano, così l'operatore vede *perché* un invio non è riuscito.
+- Nuovo `AppointmentReminderService`: unico punto di smistamento dei promemoria, per invio manuale e schedulato.
+
+## [Non rilasciato]
+
 ## [0.2.5] - 2026-07-23
 ### Aggiunto
 - Logo ufficiale "podo" (login, sidebar, favicon).

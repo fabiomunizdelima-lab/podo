@@ -132,7 +132,7 @@
 </div>
 
 @push('scripts')
-<script>
+<script nonce="{{ request()->attributes->get('csp_nonce') }}">
     function visitForm(catalog, existing) {
         return {
             catalog,
