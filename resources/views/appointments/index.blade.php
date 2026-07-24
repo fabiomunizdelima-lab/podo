@@ -8,6 +8,8 @@
         <button class="btn-primary" @click="openNew()">+ Appuntamento</button>
     </div>
 
+    <div class="mb-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-800 ring-1 ring-red-200" x-show="erroreCalendario" x-cloak x-text="erroreCalendario"></div>
+
     <div class="card p-3 sm:p-4">
         <div id="calendar" wire:ignore></div>
     </div>
@@ -97,26 +99,32 @@ function agendaPage() {
         calendar: null,
         modal: false,
         sending: false,
+        erroreCalendario: '',
         reminderMsg: '',
         reminderOk: false,
         form: {},
         mount() {
+            if (typeof window.initAgenda !== 'function') {
+                this.erroreCalendario = 'Calendario non disponibile: ricarica la pagina o svuota la cache del browser.';
+                return;
+            }
             this.calendar = window.initAgenda(document.getElementById('calendar'), {
                 feedUrl: '{{ route('appointments.feed') }}',
-                onDateClick: (date) => this.openNew(date),
+                onSelect: (start, end) => this.openNew(start, end),
                 onEventClick: (event) => this.openEdit(event),
+                onMove: (info) => this.move(info),
             });
         },
         fmt(d) { return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16); },
-        emptyForm(date) {
+        emptyForm(date, end) {
             const start = date ? new Date(date) : new Date();
-            const end = new Date(start.getTime() + 30 * 60000);
+            const fine = end ? new Date(end) : new Date(start.getTime() + 30 * 60000);
             return {
-                id: null, patient_id: '', starts_at: this.fmt(start), ends_at: this.fmt(end),
+                id: null, patient_id: '', starts_at: this.fmt(start), ends_at: this.fmt(fine),
                 treatment: '', notes: '', reminder_channel: '{{ $defaultChannel }}', reminder_sent: false,
             };
         },
-        openNew(date) { this.resetMessages(); this.form = this.emptyForm(date); this.modal = true; },
+        openNew(date, end) { this.resetMessages(); this.form = this.emptyForm(date, end); this.modal = true; },
         openEdit(event) {
             this.resetMessages();
             const p = event.extendedProps || {};
@@ -152,6 +160,24 @@ function agendaPage() {
                 this.reminderMsg = e.response?.data?.message || 'Invio non riuscito.';
             }
             this.sending = false;
+        },
+        /** Trascinamento o ridimensionamento dell'evento sul calendario. */
+        async move(info) {
+            const p = info.event.extendedProps || {};
+            if (!info.event.start || !info.event.end) { info.revert(); return; }
+            try {
+                await window.axios.put(`/agenda/${info.event.id}`, {
+                    patient_id: p.patient_id,
+                    starts_at: this.fmt(info.event.start),
+                    ends_at: this.fmt(info.event.end),
+                    treatment: p.treatment || '',
+                    notes: p.notes || '',
+                    reminder_channel: p.reminder_channel || 'none',
+                });
+            } catch (e) {
+                info.revert();
+                this.erroreCalendario = 'Spostamento non riuscito: l\'appuntamento è stato riportato all\'orario precedente.';
+            }
         },
         async destroy() {
             if (!confirm('Eliminare l\'appuntamento?')) return;

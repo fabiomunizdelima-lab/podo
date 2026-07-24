@@ -5,6 +5,14 @@ Versionamento: [SemVer](https://semver.org/lang/it/). La versione corrente è in
 
 ## [Non rilasciato]
 
+## [0.3.1] - 2026-07-24
+### Corretto
+- **L'agenda non si apriva**: `window.initAgenda` veniva assegnato *dopo* `Alpine.start()` in `resources/js/app.js`, ma lo start percorre il DOM in modo sincrono ed esegue subito `x-init="mount()"` — quindi al momento del mount la funzione era `undefined`, il calendario non veniva creato e il feed degli appuntamenti non veniva mai richiesto. Il difetto era mascherato dal nonce CSP rotto (che bloccava del tutto lo script inline) ed è emerso appena quello è stato sistemato. Ora il mount segnala l'errore in pagina invece di fallire in silenzio.
+
+### Aggiunto
+- Agenda: **trascinare su una fascia oraria crea l'appuntamento** (la pagina lo prometteva già, ma la selezione non era abilitata) e **trascinare o ridimensionare un evento ne sposta l'orario**, con ripristino automatico se il salvataggio non riesce.
+
+
 ## [0.3.0] - 2026-07-24
 ### Aggiunto
 - **Impostazioni → Integrazioni**: pagina unica per Google Calendar, email (SMTP) e WhatsApp. Le credenziali si inseriscono dall'interfaccia e finiscono **cifrate** nella tabella `settings` (`Setting::set(..., encrypt: true)`): non serve più toccare il `.env` né ricreare i container. I segreti non tornano mai al browser e un campo lasciato vuoto lascia invariato il valore già salvato.
@@ -25,6 +33,7 @@ Versionamento: [SemVer](https://semver.org/lang/it/). La versione corrente è in
 - Nuovo `AppointmentReminderService`: unico punto di smistamento dei promemoria, per invio manuale e schedulato.
 
 ## [Non rilasciato]
+
 
 ## [0.2.5] - 2026-07-23
 ### Aggiunto

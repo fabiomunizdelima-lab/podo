@@ -19,11 +19,28 @@ export function initAgenda(el, options = {}) {
         nowIndicator: true,
         height: 'auto',
         events: options.feedUrl,
+
+        // Trascinare su una fascia oraria crea l'appuntamento (come dice la pagina)
+        selectable: true,
+        selectMirror: true,
+        select(info) {
+            // In vista mese la selezione è di giornate intere: passiamo solo l'inizio
+            // e lascia che sia il form a proporre la durata predefinita.
+            if (options.onSelect) options.onSelect(info.start, info.allDay ? null : info.end);
+            calendar.unselect();
+        },
+
+        // Trascinare o ridimensionare un evento sposta l'appuntamento
+        editable: true,
+        eventDrop(info) {
+            if (options.onMove) options.onMove(info);
+        },
+        eventResize(info) {
+            if (options.onMove) options.onMove(info);
+        },
+
         eventClick(info) {
             if (options.onEventClick) options.onEventClick(info.event);
-        },
-        dateClick(info) {
-            if (options.onDateClick) options.onDateClick(info.date);
         },
     });
 
