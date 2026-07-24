@@ -54,3 +54,6 @@ yarn-error.log
 /storage/app/import
 /storage/app/import-tmp
 /storage/app/import*
+
+# Script sciolti / debug in storage (possono leggere dati pazienti)
+/storage/app/*.php

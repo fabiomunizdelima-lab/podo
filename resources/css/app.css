@@ -2,30 +2,55 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer base {
+    html {
+        @apply antialiased;
+    }
+    body {
+        @apply bg-slate-50 text-slate-800;
+    }
+}
+
 @layer components {
     .btn {
-        @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition focus:outline-none focus:ring-2 focus:ring-offset-2;
+        @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-white;
     }
     .btn-primary {
-        @apply btn bg-brand-600 text-white hover:bg-brand-700 focus:ring-brand-500;
+        @apply btn bg-brand-600 text-white shadow-sm hover:bg-brand-700 focus:ring-brand-500;
     }
     .btn-secondary {
-        @apply btn bg-white text-slate-700 ring-1 ring-inset ring-slate-300 hover:bg-slate-50;
+        @apply btn bg-white text-slate-700 ring-1 ring-inset ring-slate-300 hover:bg-slate-50 hover:ring-slate-400;
     }
     .btn-danger {
-        @apply btn bg-red-600 text-white hover:bg-red-700 focus:ring-red-500;
+        @apply btn bg-red-600 text-white shadow-sm hover:bg-red-700 focus:ring-red-500;
     }
     .input {
-        @apply block w-full rounded-lg border-slate-300 shadow-sm focus:border-brand-500 focus:ring-brand-500 sm:text-sm;
+        @apply block w-full rounded-lg border-slate-300 shadow-sm transition focus:border-brand-500 focus:ring-brand-500 sm:text-sm;
     }
     .label {
         @apply block text-sm font-medium text-slate-700 mb-1;
     }
     .card {
-        @apply rounded-xl bg-white shadow-sm ring-1 ring-slate-200;
+        @apply rounded-xl bg-white shadow-sm ring-1 ring-slate-900/5;
     }
     .badge {
         @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium;
+    }
+
+    /* Voci della sidebar */
+    .nav-link {
+        @apply flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-brand-100/80 transition hover:bg-white/10 hover:text-white;
+    }
+    .nav-link-active {
+        @apply bg-white/10 text-white shadow-sm ring-1 ring-inset ring-white/10;
+    }
+
+    /* Card statistica della dashboard */
+    .stat-card {
+        @apply relative overflow-hidden rounded-xl bg-white p-5 shadow-sm ring-1 ring-slate-900/5;
+    }
+    .stat-icon {
+        @apply flex h-11 w-11 items-center justify-center rounded-xl;
     }
 }
 
